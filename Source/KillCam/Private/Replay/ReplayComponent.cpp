@@ -13,7 +13,7 @@ UReplayComponent::UReplayComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	// ...
-    GameInstance = nullptr;
+    InWorld = nullptr;
 }
 
 
@@ -23,10 +23,8 @@ void UReplayComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-    if (GEngine->GetWorld() && GEngine->GetWorld()->GetGameInstance())
-    {
-        GameInstance = GEngine->GetWorld()->GetGameInstance();
-    }
+    InWorld = GetWorld();
+
     StartRecording();
 }
 
@@ -39,49 +37,54 @@ void UReplayComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 
 void UReplayComponent::StartRecording()
 {
-    if (GameInstance) {
-        GameInstance->StartRecordingReplay(GetName(), TEXT("Kill Cam"), { TEXT("ReplayStreamerOverride=InMemoryNetworkReplayStreaming") });
-        RecordDuration = MakeShareable(new FTimer());
-    }
+    if (!InWorld || !InWorld->GetGameInstance())
+        return;
+
+    InWorld->GetGameInstance()->StartRecordingReplay(GetName(), GetName()/*, { TEXT("ReplayStreamerOverride=InMemoryNetworkReplayStreaming") }*/);
+    RecordDuration = MakeShareable(new FTimer());
 }
 
 void UReplayComponent::StopRecording()
 {
-    if (GameInstance) {
-        GameInstance->StopRecordingReplay();
+    if (InWorld && InWorld->GetGameInstance()) {
+        InWorld->GetGameInstance()->StopRecordingReplay();
     }
 }
 
 void UReplayComponent::Replay(float SecondsBack, float Duration)
 {
-    if (GameInstance && !IsInReplay()) {
-        StopRecording();
+    if (InWorld && InWorld->GetGameInstance() && !IsInReplay()) {
         //Start replay
-        GameInstance->PlayReplay(GetName());
+        InWorld->GetGameInstance()->PlayReplay(GetName());
 
         //Get Net Driver
-        UDemoNetDriver* DemoNetDriver = GEngine->GetWorld()->DemoNetDriver;
-
+        UDemoNetDriver* DemoNetDriver = InWorld->DemoNetDriver;
         //Go to our desired record time.
         //Time can't be lees than 0. We would go to the past!
-        const float ReturnTime = FMath::Clamp(RecordDuration->GetCurrentTime() - SecondsBack, 0.0f, BIG_NUMBER);
-        DemoNetDriver->GotoTimeInSeconds(ReturnTime);
+        //const float ReturnTime = FMath::Clamp(RecordDuration->GetCurrentTime() - SecondsBack, 0.0f, BIG_NUMBER);
+        //DemoNetDriver->GotoTimeInSeconds(ReturnTime);
 
         //Reset record Timer
-        RecordDuration = nullptr;
+        //RecordDuration = nullptr;
         
         //Duration can't be greater than Seconds back. We would go to the future!!
         Duration = FMath::Clamp(Duration, 0.0f, SecondsBack);
-        GetWorld()->GetTimerManager().SetTimer(ReplayTimerHandle, this, &UReplayComponent::OnReplayFinished, Duration, false);
+        GetWorld()->GetTimerManager().SetTimer(ReplayTimerHandle, this, &UReplayComponent::OnReplayFinished, Duration);
 
         ReplayStarted.Broadcast();
     }
 }
 
 void UReplayComponent::OnReplayFinished() {
-    if (GameInstance) {
-        GetWorld()->GetTimerManager().ClearTimer(ReplayTimerHandle);
-        //GameInstance->StopReplay();
+    if (InWorld) {
+        InWorld->GetTimerManager().ClearTimer(ReplayTimerHandle);
+        
+        //Stop Replay
+        if (UDemoNetDriver* DemoNetDriver = InWorld->DemoNetDriver) {
+            DemoNetDriver->StopDemo();
+            //DemoNetDriver->play
+        }
+        
         ReplayFinished.Broadcast();
     }
 }

@@ -5,6 +5,8 @@
 #include "Components/ActorComponent.h"
 #include "ReplayComponent.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(ReplayLog, Log, All);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnReplayStarted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnReplayFinished);
 
@@ -28,11 +30,11 @@ private:
 
     TSharedPtr<FTimer> RecordDuration;
 
-    UPROPERTY(Transient)
+    UPROPERTY()
     FTimerHandle ReplayTimerHandle;
 
-    UPROPERTY(Transient)
-    UGameInstance* GameInstance;
+    UPROPERTY()
+    UWorld* InWorld;
 
 
 protected:
@@ -54,12 +56,15 @@ public:
 
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = Replay)
     bool IsInReplay() const {
-        if (!GetWorld())
+        if (!InWorld)
             return false;
 
-        return GetWorld()->GetTimerManager().IsTimerActive(ReplayTimerHandle);
+        return InWorld->GetTimerManager().IsTimerActive(ReplayTimerHandle);
     }
 
     UFUNCTION()
     void OnReplayFinished();
+
+
+    void CreateDuplicateLevel();
 };
