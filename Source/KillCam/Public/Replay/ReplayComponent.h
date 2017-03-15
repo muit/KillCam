@@ -20,6 +20,10 @@ public:
 	// Sets default values for this component's properties
 	UReplayComponent();
 
+    //Max record buffer duration in seconds
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Replay)
+    float MaxBufferDuration;
+
     UPROPERTY(BlueprintAssignable, Category = Replay)
     FOnReplayStarted ReplayStarted;
 
@@ -27,8 +31,6 @@ public:
     FOnReplayFinished ReplayFinished;
 
 private:
-
-    TSharedPtr<FTimer> RecordDuration;
 
     UPROPERTY()
     FTimerHandle ReplayTimerHandle;
@@ -66,5 +68,5 @@ public:
     void OnReplayFinished();
 
 
-    void CreateDuplicateLevel();
+    //void CreateDuplicateLevel();
 };

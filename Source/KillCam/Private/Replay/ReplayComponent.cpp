@@ -4,6 +4,7 @@
 #include "Engine/DemoNetDriver.h"
 #include "ReplayComponent.h"
 
+DEFINE_LOG_CATEGORY(ReplayLog);
 
 // Sets default values for this component's properties
 UReplayComponent::UReplayComponent()
@@ -13,6 +14,7 @@ UReplayComponent::UReplayComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	// ...
+    MaxBufferDuration = 6.0f;
     InWorld = nullptr;
 }
 
@@ -25,14 +27,11 @@ void UReplayComponent::BeginPlay()
 	// ...
     InWorld = GetWorld();
 
-    StartRecording();
+    //StartRecording();
 }
 
 void UReplayComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
-    if (RecordDuration.IsValid()) {
-        RecordDuration->Tick(DeltaTime);
-    }
 }
 
 void UReplayComponent::StartRecording()
@@ -40,8 +39,13 @@ void UReplayComponent::StartRecording()
     if (!InWorld || !InWorld->GetGameInstance())
         return;
 
-    InWorld->GetGameInstance()->StartRecordingReplay(GetName(), GetName()/*, { TEXT("ReplayStreamerOverride=InMemoryNetworkReplayStreaming") }*/);
-    RecordDuration = MakeShareable(new FTimer());
+    InWorld->GetGameInstance()->StartRecordingReplay("KillCam", "KillCam", { TEXT("ReplayStreamerOverride=InMemoryNetworkReplayStreaming") });
+
+    //Get Net Driver
+    if (UDemoNetDriver* DemoNetDriver = InWorld->DemoNetDriver) {
+        //Limit recording duration to MaxBufferDuration seconds
+        DemoNetDriver->ReplayStreamer->SetTimeBufferHintSeconds(MaxBufferDuration);
+    }
 }
 
 void UReplayComponent::StopRecording()
@@ -55,17 +59,63 @@ void UReplayComponent::Replay(float SecondsBack, float Duration)
 {
     if (InWorld && InWorld->GetGameInstance() && !IsInReplay()) {
         //Start replay
-        InWorld->GetGameInstance()->PlayReplay(GetName());
+        StopRecording();
+
+        const FName NAME_Replay(TEXT("KillCam"));
+
+        /*if ( CurrentWorld->WorldType == EWorldType::PIE )
+        {
+        UE_LOG( LogDemo, Warning, TEXT( "UGameInstance::PlayReplay: Function called while running a PIE instance, this is disabled." ) );
+        return;
+        }*/
+
+        InWorld->DestroyDemoNetDriver();
+
+        FURL DemoURL;
+        UE_LOG(ReplayLog, Log, TEXT("PlayReplay: Attempting to play demo %s"), *NAME_Replay.ToString());
+
+        DemoURL.Map = NAME_Replay.ToString();
+
+
+        const FName NAME_DemoNetDriver(TEXT("DemoNetDriver"));
+
+        if (!GEngine->CreateNamedNetDriver(InWorld, NAME_DemoNetDriver, NAME_DemoNetDriver))
+        {
+            UE_LOG(ReplayLog, Warning, TEXT("PlayReplay: failed to create demo net driver!"));
+            return;
+        }
+
+        InWorld->DemoNetDriver = Cast< UDemoNetDriver >(GEngine->FindNamedNetDriver(InWorld, NAME_DemoNetDriver));
+
+        check(InWorld->DemoNetDriver != NULL);
+
+        InWorld->DemoNetDriver->SetWorld(InWorld);
+
+        FString Error;
+
+        if (!InWorld->DemoNetDriver->InitConnect(InWorld, DemoURL, Error))
+        {
+            UE_LOG(ReplayLog, Warning, TEXT("Demo playback failed: %s"), *Error);
+            InWorld->DestroyDemoNetDriver();
+            return;
+        }
+        else
+        {
+            FCoreUObjectDelegates::PostDemoPlay.Broadcast();
+        }
+
+
+
+
+        //InWorld->GetGameInstance()->PlayReplay("KillCam");
 
         //Get Net Driver
-        UDemoNetDriver* DemoNetDriver = InWorld->DemoNetDriver;
-        //Go to our desired record time.
-        //Time can't be lees than 0. We would go to the past!
-        //const float ReturnTime = FMath::Clamp(RecordDuration->GetCurrentTime() - SecondsBack, 0.0f, BIG_NUMBER);
-        //DemoNetDriver->GotoTimeInSeconds(ReturnTime);
-
-        //Reset record Timer
-        //RecordDuration = nullptr;
+        if (UDemoNetDriver* DemoNetDriver = InWorld->DemoNetDriver) {
+            //Go to our desired record time.
+            //Time can't be lees than 0. We would go to the past!
+            const float ReturnTime = FMath::Clamp(DemoNetDriver->ReplayStreamer->GetTotalDemoTime() - SecondsBack, 0.0f, BIG_NUMBER);
+            DemoNetDriver->GotoTimeInSeconds(ReturnTime);
+        }
         
         //Duration can't be greater than Seconds back. We would go to the future!!
         Duration = FMath::Clamp(Duration, 0.0f, SecondsBack);
