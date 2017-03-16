@@ -6,7 +6,13 @@ public class KillCam : ModuleRules
 {
 	public KillCam(TargetInfo Target)
 	{
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
+		PublicDependencyModuleNames.AddRange(new string[] {
+            "Core",
+            "CoreUObject",
+            "Engine",
+            "InputCore",
+            "InMemoryNetworkReplayStreaming"
+        });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

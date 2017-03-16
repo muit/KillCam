@@ -63,13 +63,7 @@ void UReplayComponent::Replay(float SecondsBack, float Duration)
 
         const FName NAME_Replay(TEXT("KillCam"));
 
-        /*if ( CurrentWorld->WorldType == EWorldType::PIE )
-        {
-        UE_LOG( LogDemo, Warning, TEXT( "UGameInstance::PlayReplay: Function called while running a PIE instance, this is disabled." ) );
-        return;
-        }*/
-
-        InWorld->DestroyDemoNetDriver();
+        /*InWorld->DestroyDemoNetDriver();
 
         FURL DemoURL;
         UE_LOG(ReplayLog, Log, TEXT("PlayReplay: Attempting to play demo %s"), *NAME_Replay.ToString());
@@ -102,12 +96,10 @@ void UReplayComponent::Replay(float SecondsBack, float Duration)
         else
         {
             FCoreUObjectDelegates::PostDemoPlay.Broadcast();
-        }
+        }*/
 
 
-
-
-        //InWorld->GetGameInstance()->PlayReplay("KillCam");
+        InWorld->GetGameInstance()->PlayReplay(NAME_Replay.ToString());
 
         //Get Net Driver
         if (UDemoNetDriver* DemoNetDriver = InWorld->DemoNetDriver) {
@@ -118,10 +110,10 @@ void UReplayComponent::Replay(float SecondsBack, float Duration)
         }
         
         //Duration can't be greater than Seconds back. We would go to the future!!
-        Duration = FMath::Clamp(Duration, 0.0f, SecondsBack);
-        GetWorld()->GetTimerManager().SetTimer(ReplayTimerHandle, this, &UReplayComponent::OnReplayFinished, Duration);
+        //Duration = FMath::Clamp(Duration, 0.0f, SecondsBack);
+        //GetWorld()->GetTimerManager().SetTimer(ReplayTimerHandle, this, &UReplayComponent::OnReplayFinished, Duration);
 
-        ReplayStarted.Broadcast();
+        //ReplayStarted.Broadcast();
     }
 }
 
@@ -131,7 +123,7 @@ void UReplayComponent::OnReplayFinished() {
         
         //Stop Replay
         if (UDemoNetDriver* DemoNetDriver = InWorld->DemoNetDriver) {
-            DemoNetDriver->StopDemo();
+            //DemoNetDriver->StopDemo();
             //DemoNetDriver->play
         }
         
