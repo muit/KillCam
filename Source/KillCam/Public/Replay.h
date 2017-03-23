@@ -16,7 +16,7 @@ public:
 	AReplay();
 
     UPROPERTY(Category = Replay, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-    class UReplayComponent* ReplayComponent;
+    UReplayComponent* ReplayComponent;
 
     UPROPERTY(EditAnywhere, Category = Replay, meta=(DisplayName="Dynamic Level"))
     TAssetPtr<UWorld> DynamicLevelAsset;

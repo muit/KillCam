@@ -14,11 +14,11 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnReplayFinished);
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class KILLCAM_API UReplayComponent : public UActorComponent
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:	
-	// Sets default values for this component's properties
-	UReplayComponent();
+    // Sets default values for this component's properties
+    UReplayComponent();
 
     //Max record buffer duration in seconds
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Replay)
@@ -31,19 +31,15 @@ public:
     FOnReplayFinished ReplayFinished;
 
 private:
-
     UPROPERTY()
     FTimerHandle ReplayTimerHandle;
 
     UPROPERTY()
     UWorld* InWorld;
 
-
 protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
-
-    virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
+    // Called when the game starts
+    virtual void BeginPlay() override;
 
 public:
     UFUNCTION(BlueprintCallable, Category = Replay)
@@ -66,7 +62,4 @@ public:
 
     UFUNCTION()
     void OnReplayFinished();
-
-
-    //void CreateDuplicateLevel();
 };
